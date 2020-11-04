@@ -15,7 +15,7 @@ type clients []*client
 func createClient() *client {
 	var newClient client
 
-	newClient.ID = getNewId()
+	newClient.ID = getNewID()
 	newClient.IPAddress = ""
 	newClient.Sunset = sunset{}
 	newClient.BeaconConfig = beaconConfig{}
@@ -35,7 +35,7 @@ func (cs *clients) addNewClient() *client {
 	return newClient
 }
 
-func (cs *clients) filterId(id string) *client {
+func (cs *clients) filterID(id string) *client {
 	for _, c := range *cs {
 		if c.ID == id {
 			return c

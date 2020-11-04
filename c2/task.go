@@ -15,7 +15,7 @@ type tasks []*task
 func createTask(taskType string, args string) *task {
 	var t task
 
-	t.ID = getNewId()
+	t.ID = getNewID()
 	t.TaskType = taskType
 	t.Args = args
 	t.Status = "Created"
@@ -35,8 +35,8 @@ func (ts *tasks) appendTask(t *task) {
 	*ts = append(*ts, t)
 }
 
-func (ts tasks) filterId(id string) *task {
-	for i, _ := range ts {
+func (ts tasks) filterID(id string) *task {
+	for i := range ts {
 		if ts[i].ID == id {
 			return ts[i]
 		}

@@ -26,86 +26,74 @@ func viewClients(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func viewClientById(w http.ResponseWriter, r *http.Request) {
-	clientId := mux.Vars(r)["clientId"]
-	for _, c := range registeredClients {
-		if c.ID == clientId {
-			json.NewEncoder(w).Encode(c)
-		}
+func viewClientByID(w http.ResponseWriter, r *http.Request) {
+	clientID := mux.Vars(r)["clientID"]
+	filteredClient := registeredClients.filterID(clientID)
+	if filteredClient != nil {
+		json.NewEncoder(w).Encode(filteredClient)
 	}
 }
 
 func viewClientTasks(w http.ResponseWriter, r *http.Request) {
-	clientId := mux.Vars(r)["clientId"]
-	for _, c := range registeredClients {
-		if c.ID == clientId {
-			json.NewEncoder(w).Encode(c.Tasks)
-		}
+	clientID := mux.Vars(r)["clientID"]
+	filteredClient := registeredClients.filterID(clientID)
+	if filteredClient != nil {
+		json.NewEncoder(w).Encode(filteredClient.Tasks)
 	}
 }
 
 func viewClientTasksNew(w http.ResponseWriter, r *http.Request) {
-	clientId := mux.Vars(r)["clientId"]
-	var filteredTasks tasks
-	for _, c := range registeredClients {
-		if c.ID == clientId {
-			filteredTasks = c.Tasks.filterStatus("Created")
+	clientID := mux.Vars(r)["clientID"]
+	filteredClient := registeredClients.filterID(clientID)
+	if filteredClient != nil {
+		filteredTasks := filteredClient.Tasks.filterStatus("Created")
+		if filteredTasks != nil {
+			json.NewEncoder(w).Encode(filteredTasks)
 		}
-	}
-	if filteredTasks != nil {
-		json.NewEncoder(w).Encode(filteredTasks)
 	}
 }
 
 func viewClientTasksTasked(w http.ResponseWriter, r *http.Request) {
-	clientId := mux.Vars(r)["clientId"]
-	var filteredTasks tasks
-	for _, c := range registeredClients {
-		if c.ID == clientId {
-			filteredTasks = c.Tasks.filterStatus("Tasked")
+	clientID := mux.Vars(r)["clientID"]
+	filteredClient := registeredClients.filterID(clientID)
+	if filteredClient != nil {
+		filteredTasks := filteredClient.Tasks.filterStatus("Tasked")
+		if filteredTasks != nil {
+			json.NewEncoder(w).Encode(filteredTasks)
 		}
-	}
-	if filteredTasks != nil {
-		json.NewEncoder(w).Encode(filteredTasks)
 	}
 }
 
 func viewClientTasksCompleted(w http.ResponseWriter, r *http.Request) {
-	clientId := mux.Vars(r)["clientId"]
-	var filteredTasks tasks
-	for _, c := range registeredClients {
-		if c.ID == clientId {
-			filteredTasks = c.Tasks.filterStatus("Completed")
+	clientID := mux.Vars(r)["clientID"]
+	filteredClient := registeredClients.filterID(clientID)
+	if filteredClient != nil {
+		filteredTasks := filteredClient.Tasks.filterStatus("Completed")
+		if filteredTasks != nil {
+			json.NewEncoder(w).Encode(filteredTasks)
 		}
-	}
-	if filteredTasks != nil {
-		json.NewEncoder(w).Encode(filteredTasks)
 	}
 }
 
 func viewClientTasksFailed(w http.ResponseWriter, r *http.Request) {
-	clientId := mux.Vars(r)["clientId"]
-	var filteredTasks tasks
-	for _, c := range registeredClients {
-		if c.ID == clientId {
-			filteredTasks = c.Tasks.filterStatus("Failed")
+	clientID := mux.Vars(r)["clientID"]
+	filteredClient := registeredClients.filterID(clientID)
+	if filteredClient != nil {
+		filteredTasks := filteredClient.Tasks.filterStatus("Failed")
+		if filteredTasks != nil {
+			json.NewEncoder(w).Encode(filteredTasks)
 		}
-	}
-	if filteredTasks != nil {
-		json.NewEncoder(w).Encode(filteredTasks)
 	}
 }
 
-func viewClientTaskById(w http.ResponseWriter, r *http.Request) {
-	clientId := mux.Vars(r)["clientId"]
-	taskId := mux.Vars(r)["taskId"]
-	for _, c := range registeredClients {
-		if c.ID == clientId {
-			for _, t := range c.Tasks {
-				if t.ID == taskId {
-					json.NewEncoder(w).Encode(t)
-				}
-			}
+func viewClientTaskByID(w http.ResponseWriter, r *http.Request) {
+	clientID := mux.Vars(r)["clientID"]
+	taskID := mux.Vars(r)["taskID"]
+	filteredClient := registeredClients.filterID(clientID)
+	if filteredClient != nil {
+		filteredTask := filteredClient.Tasks.filterID(taskID)
+		if filteredTask != nil {
+			json.NewEncoder(w).Encode(filteredTask)
 		}
 	}
 }
@@ -142,8 +130,8 @@ func beaconClientRegister(w http.ResponseWriter, r *http.Request) {
 }
 
 func beaconClientGetConfig(w http.ResponseWriter, r *http.Request) {
-	clientId := mux.Vars(r)["clientId"]
-	c := registeredClients.filterId(clientId)
+	clientID := mux.Vars(r)["clientID"]
+	c := registeredClients.filterID(clientID)
 	if c != nil {
 		response := beaconResponse{
 			ID:           c.ID,
@@ -156,8 +144,8 @@ func beaconClientGetConfig(w http.ResponseWriter, r *http.Request) {
 }
 
 func beaconClientCheckIn(w http.ResponseWriter, r *http.Request) {
-	clientId := mux.Vars(r)["clientId"]
-	c := registeredClients.filterId(clientId)
+	clientID := mux.Vars(r)["clientID"]
+	c := registeredClients.filterID(clientID)
 	if c != nil {
 		// check in
 
@@ -165,8 +153,8 @@ func beaconClientCheckIn(w http.ResponseWriter, r *http.Request) {
 }
 
 func beaconClientPollTasks(w http.ResponseWriter, r *http.Request) {
-	clientId := mux.Vars(r)["clientId"]
-	c := registeredClients.filterId(clientId)
+	clientID := mux.Vars(r)["clientID"]
+	c := registeredClients.filterID(clientID)
 	if c != nil {
 		filteredTasks := c.Tasks.filterStatus("Created")
 		if filteredTasks != nil {
@@ -176,12 +164,12 @@ func beaconClientPollTasks(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func beaconClientSubmitTaskById(w http.ResponseWriter, r *http.Request) {
-	clientId := mux.Vars(r)["clientId"]
-	taskId := mux.Vars(r)["taskId"]
-	c := registeredClients.filterId(clientId)
+func beaconClientSubmitTaskByID(w http.ResponseWriter, r *http.Request) {
+	clientID := mux.Vars(r)["clientID"]
+	taskID := mux.Vars(r)["taskID"]
+	c := registeredClients.filterID(clientID)
 	if c != nil {
-		t := c.Tasks.filterId(taskId)
+		t := c.Tasks.filterID(taskID)
 		if t != nil {
 			body, err := ioutil.ReadAll(r.Body)
 			if err != nil {
