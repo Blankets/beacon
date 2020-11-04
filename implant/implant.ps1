@@ -11,13 +11,6 @@
 
 #>
 
-<#
-    Task Result:
-    - Task ID
-    - Success/Failure
-    - Optional Result Data | Error message
-#>
-
 $SyncedConfig = [hashtable]::Synchronized(@{
         ID              = ""
         Beacon          = @{
