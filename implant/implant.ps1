@@ -222,7 +222,7 @@ $ShellExecuteTask = {
         $currentTask.Output = "Failed to read output from shell command"
     }
 
-    if ($currentTask.Status -eq "") {
+    if ($currentTask.Status -ne "Failed") {
         $currentTask.Status = "Success"
     }
     if ($currentTask.Output -eq "") {
