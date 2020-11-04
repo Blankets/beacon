@@ -314,22 +314,22 @@ $TaskManager = {
                 $SyncedConfig.Results.Intake.Enqueue($task.Task.ID)
             }
         }
+    }
 
-        # Reap orphans :)
-        if ($syncedConfig.Tasks.InProgress.Count -gt 0) {
-            foreach ($task in $syncedConfig.Tasks.InProgress) {
-                [void](Get-WmiObject -Class Win32_Process).Where( {
-                        $_.ParentProcessId -eq $task.Task.proc.id
-                    }).Terminate()
-                $task.proc.Kill()
+    # Reap orphans :)
+    if ($syncedConfig.Tasks.InProgress.Count -gt 0) {
+        foreach ($task in $syncedConfig.Tasks.InProgress) {
+            [void](Get-WmiObject -Class Win32_Process).Where( {
+                    $_.ParentProcessId -eq $task.Task.proc.id
+                }).Terminate()
+            $task.proc.Kill()
 
-                $task.Task.Status = "Failed"
-                $SyncedConfig.Tasks.InProgress.Remove($task)
-                $SyncedConfig.Tasks.Completed.Add($task.Task)
-                $SyncedConfig.FailureCount++
+            $task.Task.Status = "Failed"
+            $SyncedConfig.Tasks.InProgress.Remove($task)
+            $SyncedConfig.Tasks.Completed.Add($task.Task)
+            $SyncedConfig.FailureCount++
 
-                $SyncedConfig.Results.Intake.Enqueue($task.Task.ID)
-            }
+            $SyncedConfig.Results.Intake.Enqueue($task.Task.ID)
         }
     }
 }
